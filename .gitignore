@@ -1,0 +1,6 @@
+.devcontainer/
+.vscode/
+build/
+node_modules/
+Dockerfile
+*.tgz
