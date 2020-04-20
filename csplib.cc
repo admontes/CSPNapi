@@ -47,20 +47,12 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
 
     // Открытие системного хранилища сертификатов.
     hStoreHandle = CertOpenSystemStore(0, "MY");
-
     if (!hStoreHandle)
     {
         return RetError("Ошибка открытия хранилища сертификатов");
     }
 
-    pCertContext = CertFindCertificateInStore(
-        hStoreHandle,
-        X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
-        0,
-        CERT_FIND_SUBJECT_STR,
-        certificateSubjectKey,
-        NULL);
-
+    pCertContext = CertFindCertificateInStore( hStoreHandle, TYPE_DER, 0, CERT_FIND_SUBJECT_STR, certificateSubjectKey, NULL);
     if (!pCertContext)
     {
         return RetError("Ошибка поиска сертификата");
@@ -68,7 +60,7 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
 
     ZeroMemory(&SigParams, sizeof(SigParams));
     SigParams.cbSize = sizeof(CRYPT_SIGN_MESSAGE_PARA);
-    SigParams.dwMsgEncodingType = X509_ASN_ENCODING | PKCS_7_ASN_ENCODING;
+    SigParams.dwMsgEncodingType = TYPE_DER;
     SigParams.pSigningCert = pCertContext;
     SigParams.HashAlgorithm.pszObjId = szOID_CP_GOST_R3411_12_256;
     SigParams.HashAlgorithm.Parameters.cbData = 0;
