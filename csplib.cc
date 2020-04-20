@@ -32,17 +32,16 @@ StructResult RetError(char *errorMessage) {
 }
 
 
-StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, DWORD *signedLen, const char *subject_name)
+StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, DWORD *signedLen, const char *subjectName)
 {
     LPSTR szOID_CP_GOST_R3411_12_256 = "1.2.643.7.1.1.2.2";
     PCCERT_CONTEXT pCertContext = NULL; // Контекст сертификата
     HCERTSTORE hStoreHandle = 0;        // Дескриптор хранилища сертификатов
     CRYPT_SIGN_MESSAGE_PARA SigParams;
 
-    const char *lname = subject_name;
     wchar_t certificateSubjectKey[255];
     memset(certificateSubjectKey, 0, sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, lname, -1, certificateSubjectKey, 255);    
+    MultiByteToWideChar(CP_UTF8, 0, subjectName, -1, certificateSubjectKey, 255);    
     // LPWSTR certificateSubjectKey = L"Тестовый пользователь 2020";
 
     // Открытие системного хранилища сертификатов.
