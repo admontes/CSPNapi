@@ -6,31 +6,32 @@
 // #define szOID_CP_GOST_R3411_12_256 "1.2.643.7.1.1.2.2"
 #define TYPE_DER (X509_ASN_ENCODING | PKCS_7_ASN_ENCODING)
 
-typedef struct StructResult {
+typedef struct StructResult
+{
     int status;
     DWORD errorCode;
     char *errorMessage;
 } StructResult;
 
-StructResult RetSuccess() {
-    StructResult result = {0, 0, (char*)""};
+StructResult RetSuccess()
+{
+    StructResult result = {0, 0, (char *)""};
     return result;
 }
 
-StructResult RetError(char *errorMessage) {
+StructResult RetError(char *errorMessage)
+{
     DWORD errorCode = GetLastError();
-    if(!errorCode) 
+    if (!errorCode)
         errorCode = 1;
     StructResult result = {
-        errorCode, 
-        errorCode, 
-        errorMessage
-    };
+        errorCode,
+        errorCode,
+        errorMessage};
     printf("Error number     : 0x%x\n", result.errorCode);
     printf("Error description: %s\n", result.errorMessage);
     return result;
 }
-
 
 StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, DWORD *signedLen, const char *subjectName)
 {
@@ -41,7 +42,7 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
 
     wchar_t certificateSubjectKey[255];
     memset(certificateSubjectKey, 0, sizeof(wchar_t));
-    MultiByteToWideChar(CP_UTF8, 0, subjectName, -1, certificateSubjectKey, 255);    
+    MultiByteToWideChar(CP_UTF8, 0, subjectName, -1, certificateSubjectKey, 255);
     // LPWSTR certificateSubjectKey = L"Тестовый пользователь 2020";
 
     // Открытие системного хранилища сертификатов.
@@ -51,7 +52,7 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
         return RetError("Ошибка открытия хранилища сертификатов");
     }
 
-    pCertContext = CertFindCertificateInStore( hStoreHandle, TYPE_DER, 0, CERT_FIND_SUBJECT_STR, certificateSubjectKey, NULL);
+    pCertContext = CertFindCertificateInStore(hStoreHandle, TYPE_DER, 0, CERT_FIND_SUBJECT_STR, certificateSubjectKey, NULL);
     if (!pCertContext)
     {
         return RetError("Ошибка поиска сертификата");
@@ -95,7 +96,6 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
     return RetSuccess();
 }
 
-
 StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWORD *Len)
 {
     CRYPT_VERIFY_MESSAGE_PARA param;
@@ -126,7 +126,7 @@ StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWOR
     }
     else
     {
-        return RetSuccess(); 
+        return RetSuccess();
     }
 }
 
