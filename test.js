@@ -20,10 +20,10 @@ const array = Buffer.from( 'ABCDE' );
 
 console.log( array )
 
-arr2 = binding.Crypt(array);
-arr3 = binding.Verify(arr2);
+arr2 = binding.Crypt(array,"Тестовый пользователь 2020");
+// arr3 = binding.Verify(arr2);
 fs.writeFile( 'temp.sig', arr2, ( err ) =>{
     if( err ) throw err;
 } )
 
-console.log(arr3);
+// console.log(arr3);
