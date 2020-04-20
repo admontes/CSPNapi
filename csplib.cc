@@ -95,6 +95,7 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
     return RetSuccess();
 }
 
+
 StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWORD *Len)
 {
     CRYPT_VERIFY_MESSAGE_PARA param;
@@ -107,26 +108,26 @@ StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWOR
     param.hCryptProv = hCryptProv;
     param.pfnGetSignerCertificate = NULL;
     param.pvGetArg = NULL;
-    *Msg = (BYTE *)malloc(signed_len = mem_len);
+    *Msg = (BYTE *)malloc(*Len = mem_len);
     DWORD dwSignerIndex = 0; /* Используется вцикле если подпись не одна.*/
     BOOL ret = NULL;
 
-    ret = CryptVerifyMessageSignature(
+    if (!CryptVerifyMessageSignature(
             &param,
             dwSignerIndex,
             mem_tbs, /* подписанное сообщение*/
             mem_len, /* длина*/
             *Msg,    /* если нужно сохранить вложение BYTE *pbDecoded,*/
             Len,     /* куда сохраняет вложение DWORD *pcbDecoded,*/
-            NULL);    /* возвращаемый сертификат на котором проверена ЭЦП (PCCERT_CONTEXT *ppSignerCert)*/
-
-    free( Msg );
-    if (ret){
+            NULL)    /* возвращаемый сертификат на котором проверена ЭЦП (PCCERT_CONTEXT *ppSignerCert)*/
+    )
+    {
+        return RetError("Ошибка проверки подписи");
+    }
+    else
+    {
         return RetSuccess(); 
     }
-    else{
-        return RetError("Ошибка проверки подписи");
-    }    
 }
 
 Napi::Buffer<BYTE> Crypt(const Napi::CallbackInfo &info)

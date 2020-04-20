@@ -16,14 +16,23 @@ var fs = require('fs');
 // array[8] = 9;
 // array[9] = 10;
 
+
+// fs.readFile("./poligon/nbki/nbki_response", (err, data) => {
+//     console.log( data );
+//     const ret = binding.Verify(data);
+//     fs.writeFile( 'temp', ret, ( err ) =>{
+//         if( err ) throw err;
+//     } )
+//     console.log( ret );
+// });
+  
+
+
 const array = Buffer.from( 'ABCDE' );
-
-console.log( array )
-
 arr2 = binding.Crypt(array,"Тестовый пользователь 2020");
-// arr3 = binding.Verify(arr2);
+arr3 = binding.Verify(arr2);
 fs.writeFile( 'temp.sig', arr2, ( err ) =>{
     if( err ) throw err;
 } )
 
-// console.log(arr3);
+console.log(arr3);
