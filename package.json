@@ -1,5 +1,5 @@
 {
-  "name": "@admontes/cspnapi",
+  "name": "cspnapi",
   "version": "1.0.0",
   "description": "Implementation operation of signing and verification of signature using CSP CryptoPro",
   "main": "index.js",
