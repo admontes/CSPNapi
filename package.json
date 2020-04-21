@@ -1,13 +1,13 @@
 {
-  "name": "nativecsp",
+  "name": "cspnapi",
   "version": "1.0.0",
-  "description": "",
+  "description": "Implementation operation of signing and verification of signature using CSP CryptoPro",
   "main": "index.js",
   "scripts": {
     "build": "node-gyp build",
     "test": "node ./test/test.js"
   },
-  "author": "",
+  "author": "Nikolay Kravchenko",
   "license": "ISC",
   "dependencies": {
     "node-addon-api": "^2.0.0"
