@@ -8,6 +8,10 @@
     "test": "node ./test/test.js"
   },
   "author": "Nikolay Kravchenko",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/admontes/CSPNapi.git"
+  },  
   "license": "ISC",
   "dependencies": {
     "node-addon-api": "^2.0.0"
