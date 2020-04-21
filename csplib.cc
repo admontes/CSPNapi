@@ -8,7 +8,7 @@
 
 typedef struct StructResult
 {
-    int status;
+    DWORD status;
     DWORD errorCode;
     char *errorMessage;
 } StructResult;
@@ -35,7 +35,7 @@ StructResult RetError(char *errorMessage)
 
 StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, DWORD *signedLen, const char *subjectName)
 {
-    LPSTR szOID_CP_GOST_R3411_12_256 = "1.2.643.7.1.1.2.2";
+    LPSTR szOID_CP_GOST_R3411_12_256 = (char*)"1.2.643.7.1.1.2.2";
     PCCERT_CONTEXT pCertContext = NULL; // Контекст сертификата
     HCERTSTORE hStoreHandle = 0;        // Дескриптор хранилища сертификатов
     CRYPT_SIGN_MESSAGE_PARA SigParams;
@@ -49,13 +49,13 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
     hStoreHandle = CertOpenSystemStore(0, "MY");
     if (!hStoreHandle)
     {
-        return RetError("Ошибка открытия хранилища сертификатов");
+        return RetError((char*)"Ошибка открытия хранилища сертификатов");
     }
 
     pCertContext = CertFindCertificateInStore(hStoreHandle, TYPE_DER, 0, CERT_FIND_SUBJECT_STR, certificateSubjectKey, NULL);
     if (!pCertContext)
     {
-        return RetError("Ошибка поиска сертификата");
+        return RetError((char*)"Ошибка поиска сертификата");
     }
 
     ZeroMemory(&SigParams, sizeof(SigParams));
@@ -82,7 +82,7 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
     DWORD cbMessageSizes[] = {mem_len};
     if (!CryptSignMessage(&SigParams, FALSE, 1, pbMessageBuffers, cbMessageSizes, NULL, signedLen))
     {
-        return RetError("Ошибка определения длины подписанного сообщения");
+        return RetError((char*)"Ошибка определения длины подписанного сообщения");
     }
 
     // Подпись сообщения
@@ -90,7 +90,7 @@ StructResult doSign(const BYTE *mem_tbs, const DWORD mem_len, BYTE **signedMsg, 
     if (!CryptSignMessage(&SigParams, FALSE, 1, pbMessageBuffers, cbMessageSizes, *signedMsg, signedLen))
     {
         free(*signedMsg);
-        return RetError("Ошибка подписанния сообщения");
+        return RetError((char*)"Ошибка подписанния сообщения");
     }
 
     return RetSuccess();
@@ -100,7 +100,6 @@ StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWOR
 {
     CRYPT_VERIFY_MESSAGE_PARA param;
     HCRYPTPROV hCryptProv = 0; /* Дескриптор провайдера*/
-    DWORD signed_len = 0;
 
     memset(&param, 0, sizeof(CRYPT_VERIFY_MESSAGE_PARA));
     param.cbSize = sizeof(CRYPT_VERIFY_MESSAGE_PARA);
@@ -110,7 +109,6 @@ StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWOR
     param.pvGetArg = NULL;
     *Msg = (BYTE *)malloc(*Len = mem_len);
     DWORD dwSignerIndex = 0; /* Используется вцикле если подпись не одна.*/
-    BOOL ret = NULL;
 
     if (!CryptVerifyMessageSignature(
             &param,
@@ -122,7 +120,7 @@ StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWOR
             NULL)    /* возвращаемый сертификат на котором проверена ЭЦП (PCCERT_CONTEXT *ppSignerCert)*/
     )
     {
-        return RetError("Ошибка проверки подписи");
+        return RetError((char*)"Ошибка проверки подписи");
     }
     else
     {
@@ -140,7 +138,15 @@ Napi::Buffer<BYTE> Crypt(const Napi::CallbackInfo &info)
     StructResult ret = doSign(buf.Data(), buf.ByteLength(), &pbSignature, &signatureLength, subject_name.Utf8Value().c_str());
 
     Napi::Buffer<BYTE> OutBuf;
-    OutBuf = Napi::Buffer<BYTE>::Copy(info.Env(), pbSignature, signatureLength);
+    if( ret.status == 0 )
+    {
+        OutBuf = Napi::Buffer<BYTE>::Copy(info.Env(), pbSignature, signatureLength);
+    }
+    else
+    {
+        Napi::Error::New(info.Env(), "CRYPT_ERR").ThrowAsJavaScriptException();
+        OutBuf = Napi::Buffer<BYTE>::New(info.Env(), 0);
+    }
     free(pbSignature);
 
     return OutBuf;
@@ -156,7 +162,15 @@ Napi::Buffer<BYTE> Verify(const Napi::CallbackInfo &info)
     StructResult ret = doVerify(buf.Data(), buf.ByteLength(), &pbSignature, &signatureLength);
 
     Napi::Buffer<BYTE> OutBuf;
-    OutBuf = Napi::Buffer<BYTE>::Copy(info.Env(), pbSignature, signatureLength);
+    if( ret.status == 0 )
+    {
+        OutBuf = Napi::Buffer<BYTE>::Copy(info.Env(), pbSignature, signatureLength);
+    }
+    else
+    {
+        Napi::Error::New(info.Env(), "VERIFY_ERR").ThrowAsJavaScriptException();
+        OutBuf = Napi::Buffer<BYTE>::New(info.Env(), 0);
+    }    
     free(pbSignature);
 
     return OutBuf;
@@ -164,8 +178,8 @@ Napi::Buffer<BYTE> Verify(const Napi::CallbackInfo &info)
 
 static Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
-    exports["Crypt"] = Napi::Function::New(env, Crypt);
-    exports["Verify"] = Napi::Function::New(env, Verify);
+    exports["Signature"] = Napi::Function::New(env, Crypt);
+    exports["VerifySig"] = Napi::Function::New(env, Verify);
     return exports;
 }
 
