@@ -128,6 +128,70 @@ StructResult doVerify(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWOR
     }
 }
 
+// функция обратного вызова для структуры
+// CRYPT_VERIFY_MESSAGE_PARA VerifyParams;
+PCCERT_CONTEXT MyGetSignerCertificateCallback(
+    void *pvGetArg,           // in
+    DWORD dwCertEncodingType, // in
+    PCERT_INFO pSignerId,     // in
+    HCERTSTORE hMsgCertStore  // in
+)
+{
+    return PCCERT_CONTEXT(pvGetArg);
+};
+
+StructResult doVerifySubject(const BYTE *mem_tbs, const DWORD mem_len, BYTE **Msg, DWORD *Len, const char *subjectName)
+{
+    CRYPT_VERIFY_MESSAGE_PARA param;
+    HCRYPTPROV hCryptProv = 0; /* Дескриптор провайдера*/
+    PCCERT_CONTEXT pCertContext = NULL; // Контекст сертификата
+    HCERTSTORE hStoreHandle = 0;        // Дескриптор хранилища сертификатов
+
+    wchar_t certificateSubjectKey[255];
+    memset(certificateSubjectKey, 0, sizeof(wchar_t));
+    MultiByteToWideChar(CP_UTF8, 0, subjectName, -1, certificateSubjectKey, 255);
+
+    // Открытие системного хранилища сертификатов.
+    hStoreHandle = CertOpenSystemStore(0, "ROOT");
+    if (!hStoreHandle)
+    {
+        return RetError((char*)"Ошибка открытия хранилища сертификатов");
+    }
+
+    pCertContext = CertFindCertificateInStore(hStoreHandle, TYPE_DER, 0, CERT_FIND_SUBJECT_STR, certificateSubjectKey, NULL);
+    if (!pCertContext)
+    {
+        return RetError((char*)"Ошибка поиска сертификата");
+    }
+
+    memset(&param, 0, sizeof(CRYPT_VERIFY_MESSAGE_PARA));
+    param.cbSize = sizeof(CRYPT_VERIFY_MESSAGE_PARA);
+    param.dwMsgAndCertEncodingType = TYPE_DER;
+    param.hCryptProv = hCryptProv;
+    param.pfnGetSignerCertificate = MyGetSignerCertificateCallback;
+    param.pvGetArg = (void*)pCertContext;
+    *Msg = (BYTE *)malloc(*Len = mem_len);
+    DWORD dwSignerIndex = 0; /* Используется вцикле если подпись не одна.*/
+
+    if (!CryptVerifyMessageSignature(
+            &param,
+            dwSignerIndex,
+            mem_tbs, /* подписанное сообщение*/
+            mem_len, /* длина*/
+            *Msg,    /* если нужно сохранить вложение BYTE *pbDecoded,*/
+            Len,     /* куда сохраняет вложение DWORD *pcbDecoded,*/
+            NULL)    /* возвращаемый сертификат на котором проверена ЭЦП (PCCERT_CONTEXT *ppSignerCert)*/
+    )
+    {
+        return RetError((char*)"Ошибка проверки подписи");
+    }
+    else
+    {
+        return RetSuccess();
+    }
+}
+
+
 Napi::Buffer<BYTE> Crypt(const Napi::CallbackInfo &info)
 {
     Napi::Buffer<BYTE> buf = info[0].As<Napi::Buffer<BYTE>>();
@@ -154,7 +218,6 @@ Napi::Buffer<BYTE> Crypt(const Napi::CallbackInfo &info)
 
 Napi::Buffer<BYTE> Verify(const Napi::CallbackInfo &info)
 {
-    // Napi::Error::New(info.Env(), "Пример ошибки").ThrowAsJavaScriptException();
     Napi::Buffer<BYTE> buf = info[0].As<Napi::Buffer<BYTE>>();
 
     BYTE *pbSignature = NULL;
@@ -176,10 +239,35 @@ Napi::Buffer<BYTE> Verify(const Napi::CallbackInfo &info)
     return OutBuf;
 }
 
+Napi::Buffer<BYTE> VerifySubject(const Napi::CallbackInfo &info)
+{
+    Napi::Buffer<BYTE> buf = info[0].As<Napi::Buffer<BYTE>>();
+    Napi::String subject_name = info[1].As<Napi::String>();
+
+    BYTE *pbSignature = NULL;
+    DWORD signatureLength = 0;
+    StructResult ret = doVerifySubject(buf.Data(), buf.ByteLength(), &pbSignature, &signatureLength, subject_name.Utf8Value().c_str());
+
+    Napi::Buffer<BYTE> OutBuf;
+    if( ret.status == 0 )
+    {
+        OutBuf = Napi::Buffer<BYTE>::Copy(info.Env(), pbSignature, signatureLength);
+    }
+    else
+    {
+        Napi::Error::New(info.Env(), "VERIFY_ERR").ThrowAsJavaScriptException();
+        OutBuf = Napi::Buffer<BYTE>::New(info.Env(), 0);
+    }    
+    free(pbSignature);
+
+    return OutBuf;
+}
+
 static Napi::Object Init(Napi::Env env, Napi::Object exports)
 {
     exports["Signature"] = Napi::Function::New(env, Crypt);
     exports["VerifySig"] = Napi::Function::New(env, Verify);
+    exports["VerifySigSubject"] = Napi::Function::New(env, VerifySubject);
     return exports;
 }
 

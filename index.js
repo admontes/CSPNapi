@@ -8,3 +8,6 @@ exports.VerifySig = function( input ) {
     return binding.VerifySig( input );
 }
 
+exports.VerifySigSubject = function( input, subjectName ) {
+    return binding.VerifySigSubject( input, subjectName );
+}
